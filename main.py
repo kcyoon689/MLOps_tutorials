@@ -9,11 +9,25 @@ from torch.optim.lr_scheduler import StepLR
 import wandb
 import os
 
+# $conda activate mlops
 # $ wandb login [wandb API key]
 
 # conda install -c conda-forge wandb
 # os.environ["WANDB_API_KEY"] = "3242a5f7889fc250d65dfd35f96e1c24ea3778bf"
 # os.environ["WANDB_MODE"] = "dryrun"
+config  = {
+    'epochs': 10,
+    'batch_size': 64,
+    'test_batch_size': 1000,
+    'learning_rate': 0.01,
+    'weight_decay': 0.7,
+    'log_interval': 1,
+    # 'dataset': 'MNIST',
+    # 'architecture': 'CNN',
+    # 'val_evrey' : 5,
+    }
+
+
 
 class Net(nn.Module):
     def __init__(self):
@@ -80,7 +94,8 @@ def test(model, device, test_loader):
         "Examples": example_images,
         "Test Accuracy": 100. * correct / len(test_loader.dataset),
         "Test Loss": test_loss})
-
+    wandb.log({"gradients": wandb.Histogram(numpy_array_or_sequence)})
+    wandb.run.summary.update({"gradients": wandb.Histogram(np_histogram=np.histogram(data))})
 
 
 def main():
@@ -95,15 +110,15 @@ def main():
 
     # Training settings
     parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
-    parser.add_argument('--batch-size', type=int, default=64, metavar='N',
+    parser.add_argument('--batch-size', type=int, default=config["batch_size"], metavar='N',
                         help='input batch size for training (default: 64)')
-    parser.add_argument('--test-batch-size', type=int, default=1000, metavar='N',
+    parser.add_argument('--test-batch-size', type=int, default=config["test_batch_size"], metavar='N',
                         help='input batch size for testing (default: 1000)')
-    parser.add_argument('--epochs', type=int, default=14, metavar='N',
+    parser.add_argument('--epochs', type=int, default=config["epochs"], metavar='N',
                         help='number of epochs to train (default: 14)')
-    parser.add_argument('--lr', type=float, default=1.0, metavar='LR',
+    parser.add_argument('--lr', type=float, default=config["learning_rate"], metavar='LR',
                         help='learning rate (default: 1.0)')
-    parser.add_argument('--gamma', type=float, default=0.7, metavar='M',
+    parser.add_argument('--gamma', type=float, default=config["weight_decay"], metavar='M',
                         help='Learning rate step gamma (default: 0.7)')
     parser.add_argument('--no-cuda', action='store_true', default=False,
                         help='disables CUDA training')
@@ -113,7 +128,7 @@ def main():
                         help='quickly check a single pass')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
                         help='random seed (default: 1)')
-    parser.add_argument('--log-interval', type=int, default=10, metavar='N',
+    parser.add_argument('--log-interval', type=int, default=config["log_interval"], metavar='N',
                         help='how many batches to wait before logging training status')
     parser.add_argument('--save-model', action='store_true', default=False,
                         help='For Saving the current Model')
