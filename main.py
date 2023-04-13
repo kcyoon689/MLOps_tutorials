@@ -1,4 +1,5 @@
 from __future__ import print_function
+import numpy as np
 import argparse
 import torch
 import torch.nn as nn
@@ -10,23 +11,25 @@ import wandb
 import os
 
 # $conda activate mlops
-# $ wandb login [wandb API key]
+
+# https://wandb.ai/authorize
+# $wandb login [wandb API key]
+
 
 # conda install -c conda-forge wandb
 # os.environ["WANDB_API_KEY"] = "3242a5f7889fc250d65dfd35f96e1c24ea3778bf"
 # os.environ["WANDB_MODE"] = "dryrun"
 config  = {
-    'epochs': 10,
+    'epochs': 3,
     'batch_size': 64,
     'test_batch_size': 1000,
-    'learning_rate': 0.01,
-    'weight_decay': 0.7,
+    'learning_rate': 0.001,
+    'weight_decay': 0.5,
     'log_interval': 1,
     # 'dataset': 'MNIST',
     # 'architecture': 'CNN',
     # 'val_evrey' : 5,
     }
-
 
 
 class Net(nn.Module):
@@ -64,6 +67,7 @@ def train(args, model, device, train_loader, optimizer, epoch):
         loss = F.nll_loss(output, target)
         loss.backward()
         optimizer.step()
+
         if batch_idx % args.log_interval == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                 epoch, batch_idx * len(data), len(train_loader.dataset),
@@ -75,6 +79,9 @@ def test(model, device, test_loader):
     model.eval()
     test_loss = 0
     correct = 0
+
+    example_images = []
+
     with torch.no_grad():
         for data, target in test_loader:
             data, target = data.to(device), target.to(device)
@@ -82,20 +89,25 @@ def test(model, device, test_loader):
             test_loss += F.nll_loss(output, target, reduction='sum').item()  # sum up batch loss
             pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
             correct += pred.eq(target.view_as(pred)).sum().item()
-            example_images = wandb.Image(data[0], caption="Ground Truth: {} Predicted: {}".format(target, pred[0].item()))
+            
+            example_images.append(wandb.Image(
+                data[0], caption="Ground Truth: {} Predicted: {}".format(target[0], pred[0].item())))
 
     test_loss /= len(test_loader.dataset)
 
     print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
         test_loss, correct, len(test_loader.dataset),
         100. * correct / len(test_loader.dataset)))
+    
+    # print('example_images: ', example_images)
 
     wandb.log({
         "Examples": example_images,
         "Test Accuracy": 100. * correct / len(test_loader.dataset),
         "Test Loss": test_loss})
-    wandb.log({"gradients": wandb.Histogram(numpy_array_or_sequence)})
-    wandb.run.summary.update({"gradients": wandb.Histogram(np_histogram=np.histogram(data))})
+
+    # wandb.log({"gradients": wandb.Histogram(numpy_array_or_sequence)})
+    # wandb.run.summary.update({"gradients": wandb.Histogram(np_histogram=np.histogram(data))})
 
 
 def main():
@@ -106,7 +118,6 @@ def main():
     # # generted run ID로 하고 싶다면 다음과 같이 쓴다.
     # # wandb.run.name = wandb.run.id
     # wandb.run.save()
-    parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
 
     # Training settings
     parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
